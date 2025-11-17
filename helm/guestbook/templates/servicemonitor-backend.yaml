@@ -1,0 +1,17 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend-servicemonitor
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: guestbook
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /health
+{{- end }}
