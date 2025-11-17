@@ -3,13 +3,10 @@ global:
   fullnameOverride: ""
 
 imagePullSecrets: []
-# Например:
-# imagePullSecrets:
-#   - name: regcred
 
 backend:
   image:
-    repository: "TODO_BACKEND_IMAGE_REPO" # <--- TODO: твой репо, напр. quay.io/mvulcu/guestbook-backend
+    repository: "ghcr.io/mvulcu/guestbook-backend"
     tag: "latest"
     pullPolicy: IfNotPresent
   replicaCount: 2
@@ -32,7 +29,7 @@ backend:
 
 frontend:
   image:
-    repository: "TODO_FRONTEND_IMAGE_REPO" # <--- TODO: твой репо, напр. quay.io/mvulcu/guestbook-frontend
+    repository: "ghcr.io/mvulcu/guestbook-frontend"
     tag: "latest"
     pullPolicy: IfNotPresent
   replicaCount: 2
@@ -55,8 +52,7 @@ postgres:
     tag: "latest"
   storage:
     size: 1Gi
-    storageClassName: "" # empty = default
-  resources:
+    storageClassName: ""
     requests:
       cpu: 100m
       memory: 256Mi
@@ -67,7 +63,6 @@ postgres:
     username: "guestbook"
     database: "guestbook"
     password: "ChangeMePostgresPass"
-
 redis:
   image:
     repository: "quay.io/kurs/redis"
@@ -91,6 +86,7 @@ hpa:
 
 monitoring:
   enabled: true
+
 networkPolicy:
   enabled: true
 
