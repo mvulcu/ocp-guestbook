@@ -7,4 +7,4 @@ metadata:
     app.kubernetes.io/part-of: guestbook
 data:
   nginx.conf: |
-{{ (.Files.Get "frontend/nginx.conf") | indent 4 }}
+{{ (.Files.Get "nginx.conf") | indent 4 }}
