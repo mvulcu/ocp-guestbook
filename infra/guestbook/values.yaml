@@ -1,0 +1,98 @@
+global:
+  nameOverride: ""
+  fullnameOverride: ""
+
+imagePullSecrets: []
+# Например:
+# imagePullSecrets:
+#   - name: regcred
+
+backend:
+  image:
+    repository: "TODO_BACKEND_IMAGE_REPO" # <--- TODO: твой репо, напр. quay.io/mvulcu/guestbook-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  service:
+    port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    dbHost: "postgres"
+    dbPort: "5432"
+    dbUser: "guestbook"
+    dbName: "guestbook"
+    redisHost: "redis"
+    redisPort: "6379"
+
+frontend:
+  image:
+    repository: "TODO_FRONTEND_IMAGE_REPO" # <--- TODO: твой репо, напр. quay.io/mvulcu/guestbook-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  service:
+    port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  route:
+    enabled: true
+    host: ""
+
+postgres:
+  image:
+    repository: "quay.io/fedora/postgresql-16"
+    tag: "latest"
+  storage:
+    size: 1Gi
+    storageClassName: "" # empty = default
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  auth:
+    username: "guestbook"
+    database: "guestbook"
+    password: "ChangeMePostgresPass"
+
+redis:
+  image:
+    repository: "quay.io/kurs/redis"
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  auth:
+    password: "ChangeMeRedisPass"
+
+hpa:
+  enabled: true
+  backend:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+monitoring:
+  enabled: true
+networkPolicy:
+  enabled: true
+
+pdb:
+  enabled: false
