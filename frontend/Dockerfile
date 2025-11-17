@@ -1,14 +1,15 @@
-FROM registry.access.redhat.com/ubi10/nginx-126:10.0
+FROM nginx:alpine
 
-USER root
+RUN rm -rf /etc/nginx/nginx.conf /etc/nginx/conf.d/*
 
-COPY index.html /opt/app-root/src/index.html
+RUN chmod -R 777 /var/cache/nginx /var/log/nginx /var/run && \
+    chown -R 101:101 /usr/share/nginx/html
+
+COPY index.html /usr/share/nginx/html/index.html
 COPY nginx.conf /etc/nginx/nginx.conf
-
-RUN chmod -R 777 /var/log/nginx /var/lib/nginx /run
-
-USER 1001
 
 EXPOSE 8080
 
-CMD ["/usr/libexec/s2i/run"]
+USER 101
+
+CMD ["nginx", "-g", "daemon off;"]

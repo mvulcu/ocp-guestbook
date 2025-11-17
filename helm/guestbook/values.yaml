@@ -8,7 +8,7 @@ backend:
   image:
     repository: "ghcr.io/mvulcu/guestbook-backend"
     tag: "latest"
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   replicaCount: 2
   service:
     port: 8080
@@ -31,7 +31,7 @@ frontend:
   image:
     repository: "ghcr.io/mvulcu/guestbook-frontend"
     tag: "latest"
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   replicaCount: 2
   service:
     port: 8080
