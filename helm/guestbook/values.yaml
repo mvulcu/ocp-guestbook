@@ -85,7 +85,7 @@ hpa:
     targetCPUUtilizationPercentage: 70
 
 monitoring:
-  enabled: true
+  enabled: false
 
 networkPolicy:
   enabled: true
