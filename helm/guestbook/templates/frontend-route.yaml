@@ -1,0 +1,18 @@
+{{- if .Values.frontend.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: guestbook
+spec:
+  to:
+    kind: Service
+    name: frontend
+  port:
+    targetPort: http
+  {{- if .Values.frontend.route.host }}
+  host: {{ .Values.frontend.route.host }}
+  {{- end }}
+{{- end }}
