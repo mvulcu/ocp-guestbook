@@ -16,21 +16,25 @@
         <div class="stats" id="stats">
             <div class="stat-item">
                 <div class="stat-value" id="totalEntries">-</div>
-                <div class="stat-label">Inlägg</div>
+                <div class="stat-label">Entries</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" id="cacheStatus">-</div>
-                <div class="stat-label">Cache</div>
+                <div class="stat-label">Cache <span class="info-icon">ⓘ</span></div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="healthStatus">-</div>
+                <div class="stat-value" id="cacheTimestamp">-</div>
+                <div class="stat-label">Last refresh</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value stat-icon" id="healthStatus">-</div>
                 <div class="stat-label">Backend / DB / Redis</div>
             </div>
         </div>
 
         <div class="card">
             <h2>Skriv i gästboken</h2>
-            <form id="entryForm">
+            <form id="entryForm" novalidate>
                 <div class="form-group">
                     <label for="name">Namn:</label>
                     <input type="text" id="name" name="name" required placeholder="Ditt namn">
@@ -39,155 +43,72 @@
                     <label for="message">Meddelande:</label>
                     <textarea id="message" name="message" required placeholder="Skriv ditt meddelande här..."></textarea>
                 </div>
-                <button type="submit">Skicka inlägg</button>
+                <div class="button-container">
+                    <button type="submit">Skicka inlägg</button>
+                    <img src="" alt="feedback" class="feedback-image" id="feedback-icon">
+                </div>
             </form>
         </div>
 
         <div class="entries">
-            <h2 style="color: white; margin-bottom: 20px;">Senaste inläggen</h2>
+            <div class="entries-header">
+                <h2>Senaste inläggen</h2>
+                <select id="sortOrder">
+                    <option value="desc">Nyaste först</option>
+                    <option value="asc">Äldsta först</option>
+                </select>
+            </div>
             <div id="entriesList" class="loading">Laddar inlägg...</div>
         </div>
     </div>
 
-    <script>
-        async function loadEntries() {
-            try {
-                const response = await fetch('/api/entries');
-                const entries = await response.json();
-                const cacheStatus = response.headers.get('X-Cache');
+    <div class="modal-overlay" id="validationModal">
+        <div class="modal-content">
+            <img src="error.png" alt="Sticker" class="modal-image">
+            <div class="modal-text" id="modalText">Please fill out this field</div>
+            <button type="button" class="modal-button" id="modalCloseBtn">OK</button>
+        </div>
+    </div>
 
-                const entriesList = document.getElementById('entriesList');
+    <div class="modal-overlay" id="deleteConfirmModal">
+        <div class="modal-content modal-confirm">
+            <h3>Bekräfta borttagning</h3>
+            <p>Är du säker på att du vill ta bort det här inlägget?</p>
+            <div class="modal-buttons">
+                <button type="button" class="modal-button modal-button-cancel" id="deleteCancelBtn">Avbryt</button>
+                <button type="button" class="modal-button modal-button-danger" id="deleteConfirmBtn">Ta bort</button>
+            </div>
+        </div>
+    </div>
 
-                if (!Array.isArray(entries) || entries.length === 0) {
-                    entriesList.innerHTML = '<div class="entry">Inga inlägg än. Var den första att skriva!</div>';
-                    return;
-                }
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content modal-edit">
+            <h3>Redigera inlägg</h3>
+            <form id="editForm">
+                <div class="form-group">
+                    <label for="editName">Namn:</label>
+                    <input type="text" id="editName" name="name" required placeholder="Ditt namn">
+                </div>
+                <div class="form-group">
+                    <label for="editMessage">Meddelande:</label>
+                    <textarea id="editMessage" name="message" required placeholder="Skriv ditt meddelande här..."></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-button modal-button-cancel" id="editCancelBtn">Avbryt</button>
+                    <button type="submit" class="modal-button modal-button-primary">Spara ändringar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                entriesList.innerHTML = entries.map(entry => `
-                    <div class="entry">
-                        <div class="entry-header">
-                            <span class="entry-name">${escapeHtml(entry.name)}</span>
-                            <span class="entry-date">
-                                ${new Date(entry.created_at).toLocaleDateString('sv-SE')}
-                                ${new Date(entry.created_at).toLocaleTimeString('sv-SE')}
-                            </span>
-                        </div>
-                        <div class="entry-message">${escapeHtml(entry.message)}</div>
-                    </div>
-                `).join('');
+<audio id="success-sound" src="success.mp3" preload="auto"></audio>
+<audio id="error-sound" src="error.mp3" preload="auto"></audio>
+<audio id="update-sound" src="update.mp3" preload="auto"></audio>
+<audio id="delete-sound" src="delete.mp3" preload="auto"></audio>
 
-                // Uppdatera cache-indikator (baserat på X-Cache header)
-                const cacheEl = document.getElementById('cacheStatus');
-                if (cacheEl) {
-                    if (cacheStatus === 'HIT') {
-                        cacheEl.textContent = '✓';
-                        cacheEl.style.color = '#4caf50';
-                    } else if (cacheStatus === 'MISS') {
-                        cacheEl.textContent = '○';
-                        cacheEl.style.color = '#ff9800';
-                    } else {
-                        cacheEl.textContent = '?';
-                        cacheEl.style.color = '#f44336';
-                    }
-                }
-            } catch (error) {
-                console.error('Fel vid laddning av inlägg:', error);
-                document.getElementById('entriesList').innerHTML =
-                    '<div class="error">Kunde inte ladda inlägg. Kontrollera att backend-tjänsten körs.</div>';
-            }
-        }
+<script src="script.js" defer></script>
 
-        // Ladda statistik + health (baserat på /api/stats)
-        async function loadStats() {
-            const totalEl = document.getElementById('totalEntries');
-            const healthEl = document.getElementById('healthStatus');
 
-            try {
-                const response = await fetch('/api/stats');
-                if (!response.ok) {
-                    if (totalEl) totalEl.textContent = '-';
-                    if (healthEl) {
-                        healthEl.textContent = '!';
-                        healthEl.style.color = '#ff9800'; // degraded
-                    }
-                    return;
-                }
 
-                const stats = await response.json();
-
-                if (totalEl) {
-                    totalEl.textContent = stats.total_entries_db || 0;
-                }
-
-                if (healthEl) {
-                    const cacheOk = stats.cache_available === true;
-                    const dbOk = typeof stats.total_entries_db === 'number';
-
-                    if (cacheOk && dbOk) {
-                        healthEl.textContent = '✓';
-                        healthEl.style.color = '#4caf50'; // green
-                    } else if (dbOk || cacheOk) {
-                        healthEl.textContent = '!';
-                        healthEl.style.color = '#ff9800'; // orange
-                    } else {
-                        healthEl.textContent = '?';
-                        healthEl.style.color = '#f44336'; // red
-                    }
-                }
-            } catch (error) {
-                console.error('Fel vid laddning av statistik:', error);
-                if (healthEl) {
-                    healthEl.textContent = '?';
-                    healthEl.style.color = '#f44336';
-                }
-            }
-        }
-
-        // Skicka nytt inlägg
-        document.getElementById('entryForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById('name').value;
-            const message = document.getElementById('message').value;
-
-            try {
-                const response = await fetch('/api/entries', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ name, message })
-                });
-
-                if (response.ok) {
-                    document.getElementById('entryForm').reset();
-                    await loadEntries();
-                    await loadStats();
-                } else {
-                    alert('Fel vid skapande av inlägg');
-                }
-            } catch (error) {
-                console.error('Fel:', error);
-                alert('Kunde inte skicka inlägg. Kontrollera att backend-tjänsten körs.');
-            }
-        });
-
-        // Hjälpfunktion för att undvika XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Ladda data vid start
-        loadEntries();
-        loadStats();
-
-        // Uppdatera var 30:e sekund
-        setInterval(() => {
-            loadEntries();
-            loadStats();
-        }, 30000);
-    </script>
 </body>
 </html>

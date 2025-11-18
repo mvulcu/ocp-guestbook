@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: quay.io/fedora/postgresql-16:latest
+    container_name: guestbook-postgres
+    environment:
+      POSTGRESQL_USER: guestbook
+      POSTGRESQL_PASSWORD: password
+      POSTGRESQL_DATABASE: guestbook
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/pgsql/data
+
+  redis:
+    image: quay.io/kurs/redis:latest
+    container_name: guestbook-redis
+    command: ["redis-server", "--requirepass", "redispassword"]
+    environment:
+      REDIS_PASSWORD: redispassword
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    container_name: guestbook-backend
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: guestbook
+      DB_PASSWORD: password
+      DB_NAME: guestbook
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: redispassword
+      PORT: "8080"
+    ports:
+      - "8081:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: guestbook-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
