@@ -15,4 +15,7 @@ spec:
   {{- if .Values.frontend.route.host }}
   host: {{ .Values.frontend.route.host }}
   {{- end }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
 {{- end }}
