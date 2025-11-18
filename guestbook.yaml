@@ -489,3 +489,23 @@ spec:
     name: frontend
   port:
     targetPort: http
+---
+# Source: guestbook/templates/servicemonitor-backend.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend-servicemonitor
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: guestbook
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  namespaceSelector:
+    matchNames:
+      - mashav-dev
+  endpoints:
+    - port: http
+      path: /health
+      interval:
