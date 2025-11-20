@@ -53,6 +53,7 @@ postgres:
   storage:
     size: 1Gi
     storageClassName: ""
+  resources:
     requests:
       cpu: 100m
       memory: 256Mi
@@ -86,6 +87,7 @@ hpa:
 
 monitoring:
   enabled: true
+  interval: 30s
 
 networkPolicy:
   enabled: true

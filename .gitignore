@@ -2,3 +2,6 @@ INFO.md
 deploy.sh
 PLANNING.md
 REPORT.md
+*.env
+*-secret.yaml
+secrets/

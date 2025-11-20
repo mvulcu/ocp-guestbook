@@ -7,7 +7,7 @@ services:
       POSTGRESQL_PASSWORD: password
       POSTGRESQL_DATABASE: guestbook
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - pgdata:/var/lib/pgsql/data
 

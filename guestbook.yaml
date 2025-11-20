@@ -415,7 +415,12 @@ spec:
             - name: data
               mountPath: /var/lib/pgsql/data
           resources:
-            null
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -519,4 +524,4 @@ spec:
   endpoints:
     - port: http
       path: /health
-      interval:
+      interval: 30s
