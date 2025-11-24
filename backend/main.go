@@ -8,11 +8,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Entry struct {
@@ -23,13 +26,91 @@ type Entry struct {
 }
 
 type App struct {
-	DB    *sql.DB
-	Redis *redis.Client
-	Ctx   context.Context
+	DB      *sql.DB
+	Redis   *redis.Client
+	Ctx     context.Context
+	Metrics *Metrics
+}
+
+// Prometheus metrics
+type Metrics struct {
+	requestsTotal  *prometheus.CounterVec
+	cacheHits      prometheus.Counter
+	cacheMisses    prometheus.Counter
+	dbEntriesTotal prometheus.Gauge
+	httpDuration   *prometheus.HistogramVec
+	dbUp           prometheus.Gauge
+	redisUp        prometheus.Gauge
+}
+
+func NewMetrics() *Metrics {
+	m := &Metrics{
+		requestsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "guestbook_requests_total",
+				Help: "Total number of HTTP requests",
+			},
+			[]string{"method", "endpoint", "status"},
+		),
+		cacheHits: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Name: "guestbook_cache_hits_total",
+				Help: "Total number of cache hits",
+			},
+		),
+		cacheMisses: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Name: "guestbook_cache_misses_total",
+				Help: "Total number of cache misses",
+			},
+		),
+		dbEntriesTotal: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "guestbook_db_entries_total",
+				Help: "Total number of entries in database",
+			},
+		),
+		httpDuration: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "guestbook_http_duration_seconds",
+				Help:    "Duration of HTTP requests in seconds",
+				Buckets: prometheus.DefBuckets,
+			},
+			[]string{"method", "endpoint"},
+		),
+		dbUp: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "guestbook_db_up",
+				Help: "Database availability (1 = up, 0 = down)",
+			},
+		),
+		redisUp: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "guestbook_redis_up",
+				Help: "Redis availability (1 = up, 0 = down)",
+			},
+		),
+	}
+
+	// Register metrics
+	prometheus.MustRegister(
+		m.requestsTotal,
+		m.cacheHits,
+		m.cacheMisses,
+		m.dbEntriesTotal,
+		m.httpDuration,
+		m.dbUp,
+		m.redisUp,
+	)
+
+	return m
 }
 
 func main() {
-	app := &App{Ctx: context.Background()}
+	app := &App{
+		Ctx:     context.Background(),
+		Metrics: NewMetrics(),
+	}
 
 	// Initiera databas
 	dbHost := getEnv("DB_HOST", "localhost")
@@ -85,14 +166,21 @@ func main() {
 		log.Println("✓ Ansluten till Redis")
 	}
 
+	// Starta background job för att uppdatera metrik
+	go app.updateMetricsPeriodically()
+
 	// Setup router
 	r := mux.NewRouter()
 
 	// CORS middleware
 	r.Use(corsMiddleware)
 
+	// Prometheus metrics middleware
+	r.Use(app.metricsMiddleware)
+
 	// Routes
 	r.HandleFunc("/health", app.healthHandler).Methods("GET")
+	r.HandleFunc("/metrics", promhttp.Handler().ServeHTTP).Methods("GET")
 	r.HandleFunc("/api/entries", app.getEntriesHandler).Methods("GET")
 	r.HandleFunc("/api/entries", app.createEntryHandler).Methods("POST")
 	r.HandleFunc("/api/entries/{id}", app.updateEntryHandler).Methods("PUT")
@@ -118,6 +206,77 @@ func (app *App) initDB() {
 		log.Fatal("Kunde inte skapa tabell:", err)
 	}
 	log.Println("✓ Databas-schema klart")
+}
+
+// Background job för att uppdatera metriker
+func (app *App) updateMetricsPeriodically() {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		// Uppdatera DB entries count
+		var count int
+		err := app.DB.QueryRow("SELECT COUNT(*) FROM entries").Scan(&count)
+		if err == nil {
+			app.Metrics.dbEntriesTotal.Set(float64(count))
+		}
+
+		// Uppdatera DB status
+		if err := app.DB.Ping(); err != nil {
+			app.Metrics.dbUp.Set(0)
+		} else {
+			app.Metrics.dbUp.Set(1)
+		}
+
+		// Uppdatera Redis status
+		if _, err := app.Redis.Ping(app.Ctx).Result(); err != nil {
+			app.Metrics.redisUp.Set(0)
+		} else {
+			app.Metrics.redisUp.Set(1)
+		}
+	}
+}
+
+// Metrics middleware
+func (app *App) metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip /metrics endpoint to avoid recursion
+		if r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		start := time.Now()
+
+		// We use a custom ResponseWriter to capture the status code
+		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		next.ServeHTTP(rw, r)
+
+		duration := time.Since(start).Seconds()
+
+		// Record metrics
+		app.Metrics.requestsTotal.WithLabelValues(
+			r.Method,
+			r.URL.Path,
+			strconv.Itoa(rw.statusCode),
+		).Inc()
+
+		app.Metrics.httpDuration.WithLabelValues(
+			r.Method,
+			r.URL.Path,
+		).Observe(duration)
+	})
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
 }
 
 func (app *App) healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -149,12 +308,14 @@ func (app *App) getEntriesHandler(w http.ResponseWriter, r *http.Request) {
 		cached, err := app.Redis.Get(app.Ctx, cacheKey).Result()
 		if err == nil && cached != "" {
 			log.Println("✓ Cache hit")
+			app.Metrics.cacheHits.Inc()
 			w.Header().Set("X-Cache", "HIT")
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(cached))
 			return
 		} else if err != nil {
 			log.Printf("⚠ Cache miss (reason: %v)", err)
+			app.Metrics.cacheMisses.Inc()
 		}
 	}
 

@@ -1,5 +1,5 @@
 ---
-# Source: guestbook/templates/networkpolicy.yaml
+# Source: guestbook/templates/app/networkpolicy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -21,7 +21,7 @@ spec:
   policyTypes:
     - Ingress
 ---
-# Source: guestbook/templates/networkpolicy.yaml
+# Source: guestbook/templates/app/networkpolicy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -43,7 +43,7 @@ spec:
   policyTypes:
     - Ingress
 ---
-# Source: guestbook/templates/networkpolicy.yaml
+# Source: guestbook/templates/app/networkpolicy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -65,7 +65,29 @@ spec:
   policyTypes:
     - Ingress
 ---
-# Source: guestbook/templates/postgres-secret.yaml
+# Source: guestbook/templates/monitoring/prometheus-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+---
+# Source: guestbook/templates/monitoring/grafana-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secret
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+type: Opaque
+stringData:
+  admin-user: "admin"
+  admin-password: ""
+---
+# Source: guestbook/templates/postgres/postgres-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -76,10 +98,10 @@ metadata:
 type: Opaque
 stringData:
   POSTGRESQL_USER: "guestbook"
-  POSTGRESQL_PASSWORD: "ChangeMePostgresPass"
+  POSTGRESQL_PASSWORD: "CHANGE_ME_POSTGRES"
   POSTGRESQL_DATABASE: "guestbook"
 ---
-# Source: guestbook/templates/redis-secret.yaml
+# Source: guestbook/templates/redis/redis-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -89,9 +111,9 @@ metadata:
     app.kubernetes.io/part-of: guestbook
 type: Opaque
 stringData:
-  REDIS_PASSWORD: "ChangeMeRedisPass"
+  REDIS_PASSWORD: "CHANGE_ME_REDIS"
 ---
-# Source: guestbook/templates/app-configmap.yaml
+# Source: guestbook/templates/app/app-configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -104,7 +126,7 @@ data:
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
 ---
-# Source: guestbook/templates/frontend-configmap-nginx.yaml
+# Source: guestbook/templates/app/frontend-configmap-nginx.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -148,7 +170,741 @@ data:
         }
     }
 ---
-# Source: guestbook/templates/postgres-pvc.yaml
+# Source: guestbook/templates/monitoring/grafana-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: true
+---
+# Source: guestbook/templates/monitoring/grafana-dashboard-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-guestbook
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+data:
+  guestbook-monitoring.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 1
+                  },
+                  {
+                    "color": "green",
+                    "value": 2
+                  }
+                ]
+              }
+            }
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 4,
+            "x": 0,
+            "y": 0
+          },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(up{job=\"backend\"})",
+              "refId": "A"
+            }
+          ],
+          "title": "Backend Pods Running",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "green",
+                      "text": "UP"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 4,
+            "x": 4,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "guestbook_db_up",
+              "refId": "A"
+            }
+          ],
+          "title": "PostgreSQL Status",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "green",
+                      "text": "UP"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 4,
+            "x": 8,
+            "y": 0
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "guestbook_redis_up",
+              "refId": "A"
+            }
+          ],
+          "title": "Redis Status",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "reqps"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "id": 4,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "rate(guestbook_cache_hits_total[5m])",
+              "legendFormat": "Cache Hits/sec",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "rate(guestbook_cache_misses_total[5m])",
+              "legendFormat": "Cache Misses/sec",
+              "refId": "B"
+            }
+          ],
+          "title": "Cache Performance",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 50
+                  },
+                  {
+                    "color": "green",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 6
+          },
+          "id": 5,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "(guestbook_cache_hits_total / (guestbook_cache_hits_total + guestbook_cache_misses_total)) * 100",
+              "refId": "A"
+            }
+          ],
+          "title": "Cache Hit Ratio",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 6
+          },
+          "id": 6,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "guestbook_db_entries_total",
+              "refId": "A"
+            }
+          ],
+          "title": "Total Entries in Database",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "reqps"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 14
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(rate(guestbook_requests_total[5m])) by (endpoint)",
+              "legendFormat": "Endpoint",
+              "refId": "A"
+            }
+          ],
+          "title": "HTTP Requests per Second",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "s"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 14
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.95, sum(rate(guestbook_http_duration_seconds_bucket[5m])) by (endpoint, le))",
+              "legendFormat": "Endpoint p95",
+              "refId": "A"
+            }
+          ],
+          "title": "Request Duration (95th percentile)",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["guestbook", "monitoring", "cache"],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Guestbook Monitoring",
+      "uid": "guestbook-monitoring",
+      "version": 1,
+      "weekStart": ""
+    }
+---
+# Source: guestbook/templates/monitoring/grafana-dashboards-provisioning.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provisioning
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+# Source: guestbook/templates/monitoring/prometheus-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 30s
+      evaluation_interval: 30s
+
+    scrape_configs:
+      - job_name: 'backend'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - mashav-dev
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_name]
+            action: keep
+            regex: backend
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: http
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: kubernetes_service
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: kubernetes_pod
+        metrics_path: /metrics
+
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+---
+# Source: guestbook/templates/monitoring/prometheus-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+# Source: guestbook/templates/postgres/postgres-pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -163,7 +919,46 @@ spec:
     requests:
       storage: 1Gi
 ---
-# Source: guestbook/templates/backend-service.yaml
+# Source: guestbook/templates/monitoring/prometheus-serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus
+  namespace: mashav-dev
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+rules:
+  - apiGroups: [""]
+    resources:
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs: ["get"]
+---
+# Source: guestbook/templates/monitoring/prometheus-serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus
+  namespace: mashav-dev
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: mashav-dev
+---
+# Source: guestbook/templates/app/backend-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -180,7 +975,7 @@ spec:
       port: 8080
       targetPort: 8080
 ---
-# Source: guestbook/templates/frontend-service.yaml
+# Source: guestbook/templates/app/frontend-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -197,7 +992,41 @@ spec:
       port: 8080
       targetPort: 8080
 ---
-# Source: guestbook/templates/postgres-service.yaml
+# Source: guestbook/templates/monitoring/grafana-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+# Source: guestbook/templates/monitoring/prometheus-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+---
+# Source: guestbook/templates/postgres/postgres-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -214,7 +1043,7 @@ spec:
       port: 5432
       targetPort: 5432
 ---
-# Source: guestbook/templates/redis-service.yaml
+# Source: guestbook/templates/redis/redis-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -231,7 +1060,7 @@ spec:
       port: 6379
       targetPort: 6379
 ---
-# Source: guestbook/templates/backend-deployment.yaml
+# Source: guestbook/templates/app/backend-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -240,6 +1069,7 @@ metadata:
     app.kubernetes.io/name: backend
     app.kubernetes.io/part-of: guestbook
 spec:
+  revisionHistoryLimit: 3
   replicas: 2
   selector:
     matchLabels:
@@ -320,7 +1150,7 @@ spec:
               cpu: 100m
               memory: 128Mi
 ---
-# Source: guestbook/templates/frontend-deployment.yaml
+# Source: guestbook/templates/app/frontend-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -329,6 +1159,7 @@ metadata:
     app.kubernetes.io/name: frontend
     app.kubernetes.io/part-of: guestbook
 spec:
+  revisionHistoryLimit: 3
   replicas: 2
   selector:
     matchLabels:
@@ -370,7 +1201,138 @@ spec:
               - key: nginx.conf
                 path: nginx.conf
 ---
-# Source: guestbook/templates/postgres-deployment.yaml
+# Source: guestbook/templates/monitoring/grafana-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+spec:
+  revisionHistoryLimit: 3
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: guestbook
+    spec:
+      containers:
+        - name: grafana
+          image: "grafana/grafana:10.2.3"
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-secret
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-secret
+                  key: admin-password
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_PATHS_PROVISIONING
+              value: /etc/grafana/provisioning
+          volumeMounts:
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+          resources:
+            limits:
+              cpu: 300m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+---
+# Source: guestbook/templates/monitoring/prometheus-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/part-of: guestbook
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: "quay.io/prometheus/prometheus:v2.48.0"
+          args:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--storage.tsdb.retention.time=7d'
+            - '--web.enable-lifecycle'
+          ports:
+            - containerPort: 9090
+              name: web
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+---
+# Source: guestbook/templates/postgres/postgres-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -379,6 +1341,7 @@ metadata:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/part-of: guestbook
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   selector:
     matchLabels:
@@ -426,7 +1389,7 @@ spec:
           persistentVolumeClaim:
             claimName: postgres-data
 ---
-# Source: guestbook/templates/redis-deployment.yaml
+# Source: guestbook/templates/redis/redis-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -435,6 +1398,7 @@ metadata:
     app.kubernetes.io/name: redis
     app.kubernetes.io/part-of: guestbook
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   selector:
     matchLabels:
@@ -465,7 +1429,7 @@ spec:
               cpu: 50m
               memory: 128Mi
 ---
-# Source: guestbook/templates/backend-hpa.yaml
+# Source: guestbook/templates/app/backend-hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -488,7 +1452,7 @@ spec:
           type: Utilization
           averageUtilization: 70
 ---
-# Source: guestbook/templates/frontend-route.yaml
+# Source: guestbook/templates/app/frontend-route.yaml
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -506,7 +1470,25 @@ spec:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
 ---
-# Source: guestbook/templates/servicemonitor-backend.yaml
+# Source: guestbook/templates/monitoring/grafana-route.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: grafana
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: guestbook
+spec:
+  to:
+    kind: Service
+    name: grafana
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+# Source: guestbook/templates/app/servicemonitor-backend.yaml
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -523,5 +1505,5 @@ spec:
       - mashav-dev
   endpoints:
     - port: http
-      path: /health
+      path: /metrics
       interval: 30s

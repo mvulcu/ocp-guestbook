@@ -1,0 +1,18 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: guestbook
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.prometheus.storage.size }}
+  {{- if .Values.prometheus.storage.storageClassName }}
+  storageClassName: "{{ .Values.prometheus.storage.storageClassName }}"
+  {{- end }}
+{{- end }}

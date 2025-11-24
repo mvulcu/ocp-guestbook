@@ -1,7 +1,22 @@
+# Documentation and planning
 INFO.md
-deploy.sh
 PLANNING.md
 REPORT.md
+
+# Deployment scripts
+deploy.sh
+*.sh
+
+# Environment and secret files
 *.env
+values-secrets.yaml
 *-secret.yaml
+*-secrets.yaml
 secrets/
+
+# OS / Editor files
+*.swp
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db

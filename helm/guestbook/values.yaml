@@ -63,7 +63,8 @@ postgres:
   auth:
     username: "guestbook"
     database: "guestbook"
-    password: "ChangeMePostgresPass"
+    password: "CHANGE_ME_POSTGRES"
+
 redis:
   image:
     repository: "quay.io/kurs/redis"
@@ -76,7 +77,7 @@ redis:
       cpu: 200m
       memory: 256Mi
   auth:
-    password: "ChangeMeRedisPass"
+    password: "CHANGE_ME_REDIS"
 
 hpa:
   enabled: true
@@ -88,6 +89,41 @@ hpa:
 monitoring:
   enabled: true
   interval: 30s
+
+prometheus:
+  enabled: true
+  image:
+    repository: "quay.io/prometheus/prometheus"
+    tag: "v2.48.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  storage:
+    size: 2Gi
+    storageClassName: ""
+  retention: 7d
+
+grafana:
+  enabled: true
+  image:
+    repository: "grafana/grafana"
+    tag: "10.2.3"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  adminUser: "admin"
+  adminPassword: ""
+  route:
+    enabled: true
+    host: ""
 
 networkPolicy:
   enabled: true

@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: backend
     app.kubernetes.io/part-of: guestbook
 spec:
+  revisionHistoryLimit: 3
   replicas: {{ .Values.backend.replicaCount }}
   selector:
     matchLabels:
