@@ -27,10 +27,18 @@ else
 fi
 
 # 1.1 Install Nginx Ingress Controller
+# 1.1 Install Nginx Ingress Controller
 echo "🌐 Checking Nginx Ingress Controller..."
 if ! kubectl get namespace ingress-nginx >/dev/null 2>&1; then
   echo "Installing Nginx Ingress Controller..."
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+  # Download manifest
+  curl -L https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml -o ingress.yaml
+  # Patch: Remove hostPort to avoid conflicts (user request)
+  sed -i '/hostPort:/d' ingress.yaml
+  # Apply
+  kubectl apply -f ingress.yaml
+  rm ingress.yaml
+
   echo "⏳ Waiting for Ingress Controller to be ready..."
   kubectl wait --namespace ingress-nginx \
     --for=condition=ready pod \
