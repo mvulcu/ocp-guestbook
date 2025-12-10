@@ -6,16 +6,19 @@ echo "${ECHO_PREFIX}Starting Troubleshooting..."
 # 1. Check Docker Port Bindings
 echo ""
 echo "${ECHO_PREFIX}Checking Docker Port Bindings (Host -> Kind):"
-docker ps --format "table {{.Names}}\t{{.Ports}}" | grep guestbook-control-plane
+docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}" | grep guestbook
+echo ""
+echo "${ECHO_PREFIX}Checking Host Port 80/443 usage:"
+sudo lsof -i :80 || echo "Port 80 free or usage hidden"
+sudo lsof -i :443 || echo "Port 443 free or usage hidden"
+
+# Check if Kind container failed to start routing
 if docker ps | grep guestbook-control-plane | grep -q "0.0.0.0:80->80/tcp"; then
-    echo "✅ Port 80 is mapped correctly."
+    echo "✅ Kind is mapped to Host Port 80."
 else
-    echo "❌ Port 80 is NOT mapped! Did you run 'destroy-kind.sh' before deploying with new config?"
-fi
-if docker ps | grep guestbook-control-plane | grep -q "0.0.0.0:443->443/tcp"; then
-    echo "✅ Port 443 is mapped correctly."
-else
-    echo "❌ Port 443 is NOT mapped!"
+    echo "❌ Kind is NOT listening on Host Port 80."
+    echo "   Reason: Port might be taken by another service (like nginx/apache/k3s)."
+    echo "   If so, we need to move Kind to a different port (e.g., 8081)."
 fi
 
 # 2. Check Ingress Status
