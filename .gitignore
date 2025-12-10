@@ -5,7 +5,7 @@ REPORT.md
 
 # Deployment scripts
 deploy.sh
-*.sh
+# *.sh
 
 # Environment and secret files
 *.env
