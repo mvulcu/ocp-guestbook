@@ -26,10 +26,12 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: frontend
-        image: guestbook-frontend:local
-        imagePullPolicy: Never
+        image: ghcr.io/mvulcu/guestbook-frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         livenessProbe:

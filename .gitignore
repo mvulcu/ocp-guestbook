@@ -11,6 +11,7 @@ deploy.sh
 *.env
 values-secrets.yaml
 *-secret.yaml
+!k8s/kind/00-ghcr-secret.yaml
 *-secrets.yaml
 secrets/
 

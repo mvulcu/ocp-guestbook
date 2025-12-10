@@ -20,21 +20,27 @@ else
     kind create cluster --name "$CLUSTER_NAME"
 fi
 
-# 2. Build Images (Local VPS scenario)
-echo "🔨 Building Docker images..."
-docker build -t guestbook-backend:local ./backend
-docker build -t guestbook-frontend:local ./frontend
+# 2. Check for GHCR Secret
+if ! kubectl get secret ghcr-secret -n "$NAMESPACE" >/dev/null 2>&1; then
+    echo "⚠️  Secret 'ghcr-secret' not found in namespace '$NAMESPACE'."
+    echo "   You must create it to pull images from GHCR."
+    echo "   Run: kubectl create secret docker-registry ghcr-secret -n $NAMESPACE --docker-server=ghcr.io --docker-username=<USER> --docker-password=<TOKEN>"
+    # We don't exit here to allow update if secret exists but just wasn't found in this check or handled externally
+fi
 
-# 3. Load Images into Kind
-echo "🚚 Loading images into Kind..."
-kind load docker-image guestbook-backend:local --name "$CLUSTER_NAME"
-kind load docker-image guestbook-frontend:local --name "$CLUSTER_NAME"
+# 3. (Skipped) Build & Load - We use GHCR now
+echo "ℹ️  Skipping local build/load. Using images from GHCR."
 
 # 4. Apply Manifests
 echo "📄 Applying Kubernetes manifests..."
 kubectl apply -f k8s/kind/
 
-# 5. Wait for Rollout
+# 5. Force Restart (to pull new images)
+echo "🔄 Restarting deployments to pull latest images..."
+kubectl rollout restart deployment/backend -n "$NAMESPACE"
+kubectl rollout restart deployment/frontend -n "$NAMESPACE"
+
+# 6. Wait for Rollout
 echo "⏳ Waiting for deployments to be ready..."
 # Wait for pods to be created first
 sleep 5
