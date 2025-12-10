@@ -33,9 +33,8 @@ if ! kubectl get namespace ingress-nginx >/dev/null 2>&1; then
   echo "Installing Nginx Ingress Controller..."
   # Download manifest
   curl -L https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml -o ingress.yaml
-  # Patch: Remove hostPort to avoid conflicts (user request)
-  sed -i '/hostPort:/d' ingress.yaml
-  # Apply
+  # Restore hostPort: It is REQUIRED for Kind extraPortMappings to work (Docker 80 -> Node 80 -> Pod 80)
+  # Applying...
   kubectl apply -f ingress.yaml
   rm ingress.yaml
 
