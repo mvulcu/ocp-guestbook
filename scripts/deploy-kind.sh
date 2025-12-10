@@ -27,22 +27,32 @@ else
 fi
 
 # 1.1 Install Nginx Ingress Controller
-echo "🌐 Installing Nginx Ingress Controller..."
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-echo "⏳ Waiting for Ingress Controller to be ready..."
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
+echo "🌐 Checking Nginx Ingress Controller..."
+if ! kubectl get namespace ingress-nginx >/dev/null 2>&1; then
+  echo "Installing Nginx Ingress Controller..."
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+  echo "⏳ Waiting for Ingress Controller to be ready..."
+  kubectl wait --namespace ingress-nginx \
+    --for=condition=ready pod \
+    --selector=app.kubernetes.io/component=controller \
+    --timeout=90s
+else
+  echo "✅ Ingress Controller already installed. Skipping."
+fi
 
 # 1.2 Install Cert-Manager
-echo "🔒 Installing Cert-Manager..."
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
-echo "⏳ Waiting for Cert-Manager..."
-kubectl wait --namespace cert-manager \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
+echo "🔒 Checking Cert-Manager..."
+if ! kubectl get namespace cert-manager >/dev/null 2>&1; then
+  echo "Installing Cert-Manager..."
+  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+  echo "⏳ Waiting for Cert-Manager..."
+  kubectl wait --namespace cert-manager \
+    --for=condition=ready pod \
+    --selector=app.kubernetes.io/component=controller \
+    --timeout=90s
+else
+   echo "✅ Cert-Manager already installed. Skipping."
+fi
 
 # 2. Check for GHCR Secret
 if ! kubectl get secret ghcr-secret -n "$NAMESPACE" >/dev/null 2>&1; then
