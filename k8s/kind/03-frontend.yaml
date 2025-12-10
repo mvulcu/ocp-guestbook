@@ -29,7 +29,7 @@ spec:
       containers:
       - name: frontend
         image: guestbook-frontend:local
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
         livenessProbe:
