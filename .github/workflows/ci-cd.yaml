@@ -66,6 +66,8 @@ jobs:
             if [ -d "$HOME/ocp-guestbook/.git" ]; then
               cd "$HOME/ocp-guestbook"
               echo "🔄 Pulling latest changes..."
+              git fetch --all
+              git reset --hard origin/main
               git pull origin main
             else
               echo "📥 Cloning repository..."
