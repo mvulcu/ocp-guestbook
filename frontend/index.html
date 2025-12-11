@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cluster Ops-Chat</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.0">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Preload Stickers to prevent lag -->
+    <link rel="preload" as="image" href="success.png">
+    <link rel="preload" as="image" href="error.png">
+    <link rel="preload" as="image" href="update.png">
+    <link rel="preload" as="image" href="delete.png">
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -82,7 +89,8 @@
             <p>Are you sure you want to purge this log entry?</p>
             <div class="modal-buttons">
                 <button type="button" class="modal-button modal-button-cancel" id="deleteCancelBtn">Cancel</button>
-                <button type="button" class="modal-button modal-button-danger" id="deleteConfirmBtn">Confirm Purge</button>
+                <button type="button" class="modal-button modal-button-danger" id="deleteConfirmBtn">Confirm
+                    Purge</button>
             </div>
         </div>
     </div>
@@ -107,12 +115,13 @@
         </div>
     </div>
 
-<audio id="success-sound" src="success.mp3" preload="auto"></audio>
-<audio id="error-sound" src="error.mp3" preload="auto"></audio>
-<audio id="update-sound" src="update.mp3" preload="auto"></audio>
-<audio id="delete-sound" src="delete.mp3" preload="auto"></audio>
+    <audio id="success-sound" src="success.mp3" preload="auto"></audio>
+    <audio id="error-sound" src="error.mp3" preload="auto"></audio>
+    <audio id="update-sound" src="update.mp3" preload="auto"></audio>
+    <audio id="delete-sound" src="delete.mp3" preload="auto"></audio>
 
-<script src="script.js" defer></script>
+    <script src="script.js" defer></script>
 
 </body>
+
 </html>
