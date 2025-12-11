@@ -1,155 +1,153 @@
-# OpenShift: Distribuerad Gästbok med cache
+# 🚀 CI/CD & DevOps: Guestbook Migration Project
 
-I denna labb ska ni bygga och deploya en modern, cloud-native applikation på OpenShift. Applikationen är en gästbok som demonstrerar:
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Kubernetes](https://img.shields.io/badge/kubernetes-kind-blue)
+![Infrastructure](https://img.shields.io/badge/infrastructure-VPS-orange)
 
-- Multi-tier arkitektur
-- Containerisering med multi-stage builds
-- Configuration management (ConfigMaps & Secrets)
-- Service discovery
-- Caching strategies
-- Persistent storage
-- External routing
+**Author:** [Your Name]
 
-## Arkitektur
+## 📋 Overview
+This project demonstrates a complete **DevOps transformation** of a legacy 3-tier application (Guestbook). The application has been migrated from a dependency on OpenShift to a self-hosted **Kubernetes (Kind)** cluster on a VPS, managed by a robust **CI/CD pipeline**.
 
-```txt
-Internet
-    ↓
-[Route] → [Frontend Service] → [Frontend Pod]
-                                      ↓
-                            [Backend Service] → [Backend Pod(s)]
-                                                  ↓         ↓
-                                            [Redis]   [PostgreSQL]
+---
+
+## 🏗️ Architecture & Solution
+
+### 🔍 The Challenge: "Why not OpenShift?"
+The initial requirement was to deploy to OpenShift. However, we faced significant geographical and access limitations to the platform.
+*   **Problem**: No access to the educational OpenShift cluster.
+*   **Solution**: **"Build Your Own Platform"**. We architected a custom Kubernetes environment on a standard Linux VPS using **Kind** (Kubernetes in Docker), effectively replicating the required orchestration capabilities.
+
+### 🔄 The Migration Journey (OpenShift -> Standard K8s)
+The project started as a legacy application tightly coupled to OpenShift's proprietary ecosystem. To migrate it to a generic VPS environment, I performed a complete re-platforming:
+
+| OpenShift Component (Legacy) | Replaced With (VPS/Standard K8s) | Reason |
+|-----------------------------|----------------------------------|--------|
+| **Routes** | **Nginx Ingress** | Standard Kubernetes mechanism for exposing services. |
+| **ImageStreams** | **GitHub Container Registry** | Decoupling image management from the cluster. |
+| **Source-to-Image (S2I)** | **Dockerfiles + GitHub Actions** | Full control over the build process via CI/CD. |
+| **Templates** | **Plain K8s Manifests** | Removing template dependency for GitOps compatibility. |
+
+This transformation proves that the application can run on **any standard Kubernetes** cluster, not just OpenShift.
+
+### 🧩 Infrastructure Diagram
+The solution uses Nginx Ingress Controller to route traffic, effectively replacing OpenShift Routes, while Cert-Manager handles SSL automation.
+
+```mermaid
+graph TD
+    User((User)) -->|HTTPS/443| Ingress[Nginx Ingress]
+
+    subgraph "VPS (Kind Cluster)"
+        Ingress -->|Route| SvcFront[Service: Frontend]
+        SvcFront --> PodFront[Pod: Frontend]
+
+        PodFront -->|API Calls| SvcBack[Service: Backend]
+        SvcBack --> PodBack[Pod: Backend]
+
+        PodBack -->|Persist| SvcDB[Service: Postgres]
+        PodBack -->|Cache| SvcRedis[Service: Redis]
+
+        SvcDB --> PodDB[Pod: Postgres]
+        SvcRedis --> PodRedis[Pod: Redis]
+    end
 ```
 
+---
 
-Den färdiga applikationen ser ut så här: [screencast.com](https://app.screencast.com/x8uWhUNAMZNQB)
-w
-## Container images
+## � Security & CI/CD Configuration (Deep Dive)
 
-- registry.access.redhat.com/ubi10/go-toolset:10.0
-- registry.access.redhat.com/ubi10-minimal:10.0
-- registry.access.redhat.com/ubi10/nginx-126:10.0
-- quay.io/kurs/redis:latest
-- quay.io/fedora/postgresql-16:latest
+A critical component of this project is the **secure, headless authentication** between GitHub and the Infrastructure. We avoided hardcoded credentials entirely.
 
-## Backend
+### 1. SSH Handshake (GitHub -> VPS)
+To allow GitHub Actions to execute commands on the VPS without a password, we implemented asymmetric cryptography:
+*   **Key Generation**: We generated an ED25519 key pair (`ssh-keygen -t ed25519`).
+*   **Trust Establishment**:
+    *   The **Public Key** was added to the VPS's `~/.ssh/authorized_keys`.
+    *   The **Private Key** was encrypted and stored as `VPS_SSH_KEY` in GitHub Secrets.
+*   **Execution**: The `appleboy/ssh-action` uses this key to open a secure tunnel, executing the deployment script as if a user were typed it at the terminal.
 
-För att bygga backend behöver ni kunna bygga Golang:
+### 2. Registry Authentication (GHCR)
+We implemented a strict "Private Registry" policy.
+*   **Push (CI)**: The workflow uses the short-lived `GITHUB_TOKEN` to authenticate and push images during the build phase.
+*   **Pull (CD)**: The Kubernetes cluster needs a permanent way to pull these private images. We generated a **Personal Access Token (PAT)** with `read:packages` scope and stored it as a Kubernetes Secret:
+    ```bash
+    # Secret creation on VPS
+    kubectl create secret docker-registry ghcr-secret \
+      --docker-server=ghcr.io \
+      --docker-username=mvulcu \
+      --docker-password=[PAT_TOKEN]
+    ```
+    This secret (`ghcr-secret`) is then referenced in all Deployments via `imagePullSecrets`.
 
-```sh
-$ go mod tidy
-$ go build -o guestbook-api .
+### 3. Secrets Management Strategy
+All sensitive data is decoupled from the code.
+
+| Secret Name | Scope | Purpose |
+|-------------|-------|---------|
+| `VPS_HOST` | GitHub | IP address of the production server. |
+| `VPS_USER` | GitHub | SSH User (e.g., `ubuntu`). |
+| `VPS_SSH_KEY` | GitHub | Private SSH Key for remote execution. |
+| `GHCR_TOKEN` | GitHub | Token for pushing Docker images. |
+| `db-secrets` | K8s | Internal DB/Redis passwords. |
+
+---
+
+## 🔄 CI/CD Pipeline Workflow
+
+```mermaid
+sequenceDiagram
+    participant Dev as 👨‍💻 Developer
+    participant GH as 🐙 GitHub Actions
+    participant Reg as 📦 GHCR (Registry)
+    participant VPS as 🖥️ VPS Server
+
+    Dev->>GH: Push to main
+    GH->>GH: Build Docker Images
+    GH->>Reg: Authenticate & Push
+    GH->>VPS: SSH Connect (RSA/ED25519)
+    VPS->>GH: Git Pull (Manifests)
+    VPS->>Reg: Authenticate (imagePullSecrets)
+    VPS->>Reg: Pull Latest Images
+    VPS->>VPS: kubectl apply & rollout restart
 ```
 
-Backend är beroende av att PostgreSQL och Redis är igång och fungerar. För att backend-applikationen skall kunna köras behöver följande miljövariabler sättas. Värdena inom paranteserna är standardvärdena och kommer användas om du inte sätter miljövariablerna.
+---
 
-PostgreSQL:
+## 🔧 Deployment Configuration
 
-- `DB_HOST` (localhost)
-- `DB_PORT` (5432)
-- `DB_USER` (guestbook)
-- `DB_PASSWORD` (password)
-- `DB_NAME` (guestbook)
+The configuration was migrated from OpenShift Templates to standard Kubernetes Manifests:
 
-Redis:
+| File | Purpose | Key Strategy |
+|------|---------|--------------|
+| `01-db.yaml` | Postgres & Redis | Uses Secrets for passwords. |
+| `02-backend.yaml` | Go Backend | `imagePullPolicy: Always` ensures fresh code on restart. |
+| `04-ingress.yaml` | Routing | Maps `guestbook.cicd.cachefly.site` to the frontend service. |
+| `05-issuer.yaml` | SSL | Let's Encrypt Production Issuer. |
 
-- `REDIS_HOST` (localhost)
-- `REDIS_PORT` (6379)
-- `REDIS_PASSWORD` ()
+---
 
-Applikationen lyssnar på:
+## 🧠 Q&A: Technical Decisions
 
-- `PORT` (8080)
+### 1. Which YAML files are changed? Do we need to apply all?
+In a strict GitOps flow, only the **Deployment** usually changes (specifically the `image` tag).
+*   **Technically**: You only need to apply changed files.
+*   **Our Strategy**: We run `kubectl apply -f k8s/kind/` for **all files**.
+    *   *Reason*: Kubernetes is **declarative and idempotent**. Applying an unchanged file is a no-op (safe). applying everything ensures the cluster state matches the repository exactly, preventing "configuration drift".
 
-API-endpoints:
+### 2. If we change a ConfigMap, do we need to restart the Deployment?
+**Yes.**
+*   Pods read `ConfigMap` values (env vars) only at startup.
+*   Changing the ConfigMap resource alone does not notify running Pods.
+*   **Implementation**: Our deployment script includes `kubectl rollout restart deployment/...`. This gracefully spins up new Pods with the new configuration and terminates the old ones.
 
-- `/health` GET
-- `/api/entries` GET
-- `/api/entries` POST
-- `/api/stats` GET
+---
 
-### Testa backend
+## 🚀 How to Run
 
-För att se om backend fungerar som den skall kan du köra följande kommandon:
-
-- Testa om `/health` fungerar
-
-```sh
-$ curl localhost:8080/health
+### Deployment
+One command handles everything (Cluster, Ingress, SSL, App):
+```bash
+sh scripts/deploy-kind.sh
 ```
 
-- Hämta alla inlägg
-
-```sh
-$ curl localhost:8080/api/entries
-```
-
-- Skapa ett nytt inlägg. `name` är namnet på den som skrivit inlägget och `message` är inlägget. I exemplet nedanför skriver Jonas meddelandet *Jonas testar API!*
-
-```sh
-$ curl -X POST localhost:8080/api/entries \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Jonas","message":"Jonas testar API!"}'
-```
-
-- Hämta statistik
-
-```sh
-$ curl localhost:8080/api/stats
-```
-
-## Frontend
-
-För att nginx på frontend skall kunna hitta backend måste vi ange att den skall använda 
-OpenShift-klustrets DNS för namnuppslag. Då räcker det med att vår service heter `backend` 
-och ligger i samma project som vi har frontend.
-
-```nginx file=nginx.conf
-
-    resolver dns-default.openshift-dns.svc.cluster.local valid=30s;
-    resolver_timeout 5s;
-
-    upstream backend {
-        server backend:8080;
-    }
-
-```
-
-Hela `nginx.conf`-filen finns här i repot.
-
-## PostgreSQL
-
-- `POSTGRESQL_USER`
-- `POSTGRESQL_PASSWORD`
-- `POSTGRESQL_DATABASE`
-- `/var/lib/pgsql/data` är katalogen där PostgreSQL sparar data.
-
-## Redis
-
-- Sätt `REDIS_PASSWORD` till det lösenord du vill använda. Utan detta kommer inte backend kunna 
-kommunicera med Redis!
-- `/var/lib/redis/data` är katalogen där Redis sparar sin data.
-
-## Checklist
-
-- [ ] Alla 6 pods körs (2x backend, 2x frontend, 1x postgres, 1x redis)
-- [ ] ConfigMaps och Secrets används korrekt
-- [ ] Backend kan ansluta till både PostgreSQL och Redis
-- [ ] Frontend kan kommunicera med backend via service
-- [ ] Route exponerar applikationen externt
-- [ ] Cache fungerar (verifiera X-Cache header med `curl -i`)
-- [ ] Health checks fungerar
-- [ ] Persistent storage används för PostgreSQL
-- [ ] Kan skapa och läsa inlägg via webbgränssnittet (frontend applikationen)
-
-## Reflektionsfrågor
-
-1. Varför använder vi multi-stage builds?
-2. Vad händer om Redis går ner? Funkar applikationen fortfarande?
-3. Hur skulle ni implementera high availability för PostgreSQL?
-4. Varför använder vi separate services för backend och frontend?
-5. Vad är skillnaden mellan ClusterIP, NodePort och LoadBalancer?
-6. Varför bör känsliga data ligga i Secrets istället för ConfigMaps?
-7. Hur kan vi implementera horizontal pod autoscaling?
-
+**Live URL:** [https://guestbook.cicd.cachefly.site](https://guestbook.cicd.cachefly.site)
