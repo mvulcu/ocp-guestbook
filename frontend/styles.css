@@ -221,7 +221,7 @@ button:active {
     margin-bottom: 20px;
 }
 
-/* новые блоки для UI: сортировка + кнопки редакт/удалить */
+/* new UI blocks: sorting + edit/delete buttons */
 
 .entries-header {
     display: flex;
@@ -272,7 +272,7 @@ button:active {
     background: #ffcccc;
 }
 
-/* СТИКЕРЫ / МОДАЛКА — КАК У ТЕБЯ, БЕЗ ИЗМЕНЕНИЯ РАЗМЕРОВ */
+/* STICKERS / MODAL - FIXED SIZES */
 
 .button-container {
     position: relative;
@@ -359,7 +359,7 @@ button:active {
     opacity: 0.9;
 }
 
-/* Стили для модальных окон подтверждения и редактирования */
+/* Styles for confirmation and edit modals */
 .modal-confirm, .modal-edit {
     max-width: 450px;
     text-align: left;
@@ -437,7 +437,7 @@ button:active {
     resize: vertical;
 }
 
-/* адаптив */
+/* responsive */
 
 @media (max-width: 768px) {
     .stats {

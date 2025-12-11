@@ -7,7 +7,7 @@ echo "=== STRESS TEST ==="
 echo "This will generate massive load!"
 echo ""
 
-# Создание большого количества записей быстро
+# Creating a large number of entries quickly
 echo "Creating 500 entries in parallel..."
 for i in {1..500}; do
   (
@@ -17,7 +17,7 @@ for i in {1..500}; do
       > /dev/null
   ) &
 
-  # Ограничиваем параллельность до 50 одновременных запросов
+  # Limit parallelism to 50 concurrent requests
   if [ $((i % 50)) -eq 0 ]; then
     wait
     echo "  Created $i entries..."
