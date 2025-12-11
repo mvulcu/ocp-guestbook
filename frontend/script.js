@@ -162,7 +162,7 @@ if (deleteConfirmBtn) {
             hideDeleteModal();
             showFeedbackIcon('error');
             playSound('error');
-            showModal('Kunde inte ta bort inlägget.');
+            showModal('Could not delete log entry.');
         }
     });
 }
@@ -191,7 +191,7 @@ if (editForm) {
         if (!name || !message) {
             showFeedbackIcon('error');
             playSound('error');
-            showModal('Namn och meddelande kan inte vara tomma.');
+            showModal('Identity and Message Payload cannot be empty.');
             return;
         }
 
@@ -206,7 +206,7 @@ if (editForm) {
             hideEditModal();
             showFeedbackIcon('error');
             playSound('error');
-            showModal('Kunde inte uppdatera inlägget.');
+            showModal('Could not update log entry.');
         }
     });
 }
@@ -237,7 +237,7 @@ async function loadEntries() {
 
         if (cacheTimestampEl) {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             cacheTimestampEl.textContent = timeStr;
         }
 
@@ -251,14 +251,14 @@ async function loadEntries() {
         });
 
         if (!entries.length) {
-            entriesList.innerHTML = '<div class="entry">Inga inlägg än. Var den första att skriva!</div>';
+            entriesList.innerHTML = '<div class="entry">System log empty. Initialize sequence...</div>';
             return;
         }
 
         entriesList.innerHTML = entries.map(entry => {
             const date = new Date(entry.created_at);
-            const dateStr = date.toLocaleDateString('sv-SE');
-            const timeStr = date.toLocaleTimeString('sv-SE');
+            const dateStr = date.toLocaleDateString('en-US');
+            const timeStr = date.toLocaleTimeString('en-US');
             return `
                 <div class="entry" data-id="${entry.id}">
                     <div class="entry-header">
@@ -267,8 +267,8 @@ async function loadEntries() {
                             <span class="entry-date">${dateStr} ${timeStr}</span>
                         </div>
                         <div class="entry-actions">
-                            <button class="entry-btn edit-btn" data-id="${entry.id}">Redigera</button>
-                            <button class="entry-btn delete-btn" data-id="${entry.id}">Ta bort</button>
+                            <button class="entry-btn edit-btn" data-id="${entry.id}">Edit</button>
+                            <button class="entry-btn delete-btn" data-id="${entry.id}">Purge</button>
                         </div>
                     </div>
                     <div class="entry-message">${escapeHtml(entry.message)}</div>
@@ -277,7 +277,7 @@ async function loadEntries() {
         }).join('');
     } catch (error) {
         entriesList.innerHTML =
-            '<div class="error">Kunde inte ladda inlägg. Kontrollera att backend-tjänsten körs.</div>';
+            '<div class="error">Connection Failed. Backend Service Unreachable.</div>';
     }
 }
 
@@ -368,7 +368,7 @@ if (entryForm) {
 
         if (!name || !message) {
             playSound('error');
-            showModal('Fyll i både namn och meddelande.');
+            showModal('Identity and Message Payload required.');
             return;
         }
 
@@ -383,7 +383,7 @@ if (entryForm) {
             await loadStats();
         } catch (error) {
             playSound('error');
-            showModal('Kunde inte spara inlägget. Försök igen.');
+            showModal('Write Failed. Retrying...');
 
         }
     });

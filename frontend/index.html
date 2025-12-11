@@ -1,50 +1,56 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gästbok - OpenShift Lab</title>
+    <title>Cluster Ops-Chat</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📝 Gästbok</h1>
-            <p>OpenShift Lab - Distribuerad Applikation</p>
+            <h1>&lt;/&gt; Cluster Ops-Chat</h1>
+            <p>System v2.0 // Node: vps-worker-01</p>
         </div>
 
         <div class="stats" id="stats">
             <div class="stat-item">
                 <div class="stat-value" id="totalEntries">-</div>
-                <div class="stat-label">Entries</div>
+                <div class="stat-label">Messages</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" id="cacheStatus">-</div>
-                <div class="stat-label">Cache <span class="info-icon">ⓘ</span></div>
+                <div class="stat-label">Cache State <span class="info-icon">ⓘ</span></div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" id="cacheTimestamp">-</div>
-                <div class="stat-label">Last refresh</div>
+                <div class="stat-label">Last Sync</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value stat-icon" id="healthStatus">-</div>
-                <div class="stat-label">Backend / DB / Redis</div>
+                <div class="stat-label">System Health</div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>Skriv i gästboken</h2>
+        <div class="card terminal-card">
+            <div class="terminal-header">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+                <span class="terminal-title">user@entry-pod:~</span>
+            </div>
             <form id="entryForm" novalidate>
                 <div class="form-group">
-                    <label for="name">Namn:</label>
-                    <input type="text" id="name" name="name" required placeholder="Ditt namn">
+                    <label for="name">User Identity:</label>
+                    <input type="text" id="name" name="name" required placeholder="devops-engineer" autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <label for="message">Meddelande:</label>
-                    <textarea id="message" name="message" required placeholder="Skriv ditt meddelande här..."></textarea>
+                    <label for="message">Command / Message:</label>
+                    <textarea id="message" name="message" required placeholder="echo 'Hello World'"></textarea>
                 </div>
                 <div class="button-container">
-                    <button type="submit">Skicka inlägg</button>
+                    <button type="submit">Execute Send >_</button>
                     <img src="" alt="feedback" class="feedback-image" id="feedback-icon">
                 </div>
             </form>
@@ -52,13 +58,13 @@
 
         <div class="entries">
             <div class="entries-header">
-                <h2>Senaste inläggen</h2>
+                <h2>System Logs</h2>
                 <select id="sortOrder">
-                    <option value="desc">Nyaste först</option>
-                    <option value="asc">Äldsta först</option>
+                    <option value="desc">Newest First</option>
+                    <option value="asc">Oldest First</option>
                 </select>
             </div>
-            <div id="entriesList" class="loading">Laddar inlägg...</div>
+            <div id="entriesList" class="loading">Fetching logs...</div>
         </div>
     </div>
 
@@ -66,36 +72,36 @@
         <div class="modal-content">
             <img src="error.png" alt="Sticker" class="modal-image">
             <div class="modal-text" id="modalText">Please fill out this field</div>
-            <button type="button" class="modal-button" id="modalCloseBtn">OK</button>
+            <button type="button" class="modal-button" id="modalCloseBtn">ACKNOWLEDGE</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="deleteConfirmModal">
         <div class="modal-content modal-confirm">
-            <h3>Bekräfta borttagning</h3>
-            <p>Är du säker på att du vill ta bort det här inlägget?</p>
+            <h3>Confirm Deletion</h3>
+            <p>Are you sure you want to purge this log entry?</p>
             <div class="modal-buttons">
-                <button type="button" class="modal-button modal-button-cancel" id="deleteCancelBtn">Avbryt</button>
-                <button type="button" class="modal-button modal-button-danger" id="deleteConfirmBtn">Ta bort</button>
+                <button type="button" class="modal-button modal-button-cancel" id="deleteCancelBtn">Cancel</button>
+                <button type="button" class="modal-button modal-button-danger" id="deleteConfirmBtn">Confirm Purge</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="editModal">
         <div class="modal-content modal-edit">
-            <h3>Redigera inlägg</h3>
+            <h3>Edit Log Entry</h3>
             <form id="editForm">
                 <div class="form-group">
-                    <label for="editName">Namn:</label>
-                    <input type="text" id="editName" name="name" required placeholder="Ditt namn">
+                    <label for="editName">User Identity:</label>
+                    <input type="text" id="editName" name="name" required placeholder="devops-engineer">
                 </div>
                 <div class="form-group">
-                    <label for="editMessage">Meddelande:</label>
-                    <textarea id="editMessage" name="message" required placeholder="Skriv ditt meddelande här..."></textarea>
+                    <label for="editMessage">Message Payload:</label>
+                    <textarea id="editMessage" name="message" required placeholder="Content..."></textarea>
                 </div>
                 <div class="modal-buttons">
-                    <button type="button" class="modal-button modal-button-cancel" id="editCancelBtn">Avbryt</button>
-                    <button type="submit" class="modal-button modal-button-primary">Spara ändringar</button>
+                    <button type="button" class="modal-button modal-button-cancel" id="editCancelBtn">Discard</button>
+                    <button type="submit" class="modal-button modal-button-primary">Commit Changes</button>
                 </div>
             </form>
         </div>
@@ -107,8 +113,6 @@
 <audio id="delete-sound" src="delete.mp3" preload="auto"></audio>
 
 <script src="script.js" defer></script>
-
-
 
 </body>
 </html>
