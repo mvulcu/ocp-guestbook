@@ -4,7 +4,7 @@
 ![Kubernetes](https://img.shields.io/badge/kubernetes-kind-blue)
 ![Infrastructure](https://img.shields.io/badge/infrastructure-VPS-orange)
 
-**Author:** [Your Name]
+**Author:** Maria Vulcu 
 
 ## 📋 Overview
 This project demonstrates a complete **DevOps transformation** of a legacy 3-tier application (Guestbook). The application has been migrated from a dependency on OpenShift to a self-hosted **Kubernetes (Kind)** cluster on a VPS, managed by a robust **CI/CD pipeline**.
