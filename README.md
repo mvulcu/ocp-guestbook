@@ -1,6 +1,6 @@
 # 🚀 CI/CD & DevOps: Guestbook Migration Project
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![CI/CD Pipeline](https://github.com/mvulcu/ocp-guestbook/actions/workflows/ci-cd.yaml/badge.svg)
 ![Kubernetes](https://img.shields.io/badge/kubernetes-kind-blue)
 ![Infrastructure](https://img.shields.io/badge/infrastructure-VPS-orange)
 
@@ -150,4 +150,4 @@ One command handles everything (Cluster, Ingress, SSL, App):
 sh scripts/deploy-kind.sh
 ```
 
-**Live URL:** [https://guestbook.cicd.cachefly.site](https://guestbook.cicd.cachefly.site)
+**Live demo:** the demo VPS has been decommissioned. Images are still built on every push; the deploy job can be started manually from the Actions tab.
