@@ -150,4 +150,4 @@ One command handles everything (Cluster, Ingress, SSL, App):
 sh scripts/deploy-kind.sh
 ```
 
-**Live demo:** the demo VPS has been decommissioned. Images are still built on every push; the deploy job can be started manually from the Actions tab.
+**Live demo:** the demo VPS has been decommissioned. Images are still built on every push; publishing to GHCR and the deploy job run only when the workflow is started manually.
